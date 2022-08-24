@@ -8,16 +8,19 @@ function __parseIndexStr(indexstr, callback)
 end
 
 u8 = setmetatable({}, {
+    __index = function(self, key)
+        if (type(key) == "number") then
+            for index = 1, key do
+                self[index] = 0
+            end
+            self.__size = key
+            return self
+        end
+    end,
     __call = function(self, indexstr, value)
         __parseIndexStr(indexstr, function(index)
-            rawset(self, index, value)
+            self[index] = value
         end)
-        return setmetatable({}, {
-            __index = self,
-            __call = function(t, ...)
-                return self:new(...)
-            end
-        })
     end,
     __newindex = function(self, key, value)
         if (type(key) == "string" and key:find("|")) then
