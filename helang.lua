@@ -7,7 +7,15 @@ function __parseIndexStr(indexstr, callback)
     end
 end
 
-u8 = setmetatable({}, {
+u8 = setmetatable({
+    new = function(self, size)
+        for index = 1, size do
+            self[index] = 0
+        end
+        self.__size = size
+        return self
+    end
+}, {
     __index = function(self, key)
         if (type(key) == "number") then
             for index = 1, key do
@@ -17,13 +25,23 @@ u8 = setmetatable({}, {
             return self
         end
     end,
-    __call = function(self, indexstr, value)
-        __parseIndexStr(indexstr, function(index)
-            self[index] = value
-        end)
+    __call = function(self, indexs, value)
+        if type(indexs) == "table" then
+            for index in pairs(indexs) do
+                rawset(self, index, value)
+            end
+        elseif type(indexs) == "string" then
+            __parseIndexStr(indexs, function(index)
+                rawset(self, index, value)
+            end)
+        end
     end,
     __newindex = function(self, key, value)
-        if (type(key) == "string" and key:find("|")) then
+        if (type(key) == "table") then
+            for index in pairs(key) do
+                rawset(self, index, value)
+            end
+        elseif (type(key) == "string" and key:find("|")) then
             __parseIndexStr(key, function(index)
                 rawset(self, index, value)
             end)
@@ -41,18 +59,26 @@ u8 = setmetatable({}, {
     end
 })
 
-function u8:new(size)
-    for index = 1, size do
-        self[index] = 0
+local stringmt = getmetatable("")
+stringmt.__bor = function(a, b)
+    if type(a) ~= "table" then
+        a = { a }
     end
-    self.__size = size
-    return self
+    table.insert(a, b)
+    return a
 end
+debug.setmetatable('', stringmt)
 
 function prints(chars)
     local str = ""
-    for code in string.gmatch(chars, "[^|]+") do
-        str = str .. string.char(tonumber(code))
+    if type(chars) == "table" then
+        for _, char in ipairs(chars) do
+            str = str .. string.char(char)
+        end
+    else
+        for code in string.gmatch(chars, "[^|]+") do
+            str = str .. string.char(tonumber(code))
+        end
     end
     print(str)
 end
